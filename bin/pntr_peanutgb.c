@@ -50,7 +50,7 @@ pntr_app Main(int argc, char* argv[]) {
         .update = Update,
         .close = Close,
         //.event = Event,
-        .fps = 30,
+        .fps = 60,
         .userData = argv[1]
     };
 }

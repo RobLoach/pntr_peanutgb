@@ -81,6 +81,8 @@ struct priv_t
     int posX;
     int posY;
     enum gb_error_e error;
+
+    pntr_color palette[4];
 };
 
 /**
@@ -142,14 +144,13 @@ void pntr_peanutgb_lcd_draw_line(struct gb_s *gb, const uint8_t pixels[160],
 		   const uint_least8_t line)
 {
 	struct priv_t *priv = gb->direct.priv;
-	const uint32_t palette[] = { 0xFFFFFF, 0xA5A5A5, 0x525252, 0x000000 };
 
     int posY = priv->posY + line;
 	for(unsigned int x = 0; x < LCD_WIDTH; x++) {
         int posX = priv->posX + x;
 
-        uint32_t color = palette[pixels[x] & 3];
-        pntr_draw_point(priv->fb, posX, posY, pntr_get_color(color));
+        pntr_color color = priv->palette[pixels[x] & 3];
+        pntr_draw_point(priv->fb, posX, posY, color);
     }
 }
 #endif
@@ -173,6 +174,11 @@ PNTR_PEANUTGB_API void* pntr_load_peanutgb(const void* data) {
 
     priv->rom = (uint8_t*)data;
     priv->error = false;
+    
+    priv->palette[0] = pntr_get_color(0xe0f8d0FF);
+    priv->palette[1] = pntr_get_color(0x88c070FF);
+    priv->palette[2] = pntr_get_color(0x346856FF);
+    priv->palette[3] = pntr_get_color(0x081820FF);
 
     enum gb_init_error_e ret = gb_init(gb,
             &pntr_peanutgb_rom_read,
@@ -211,7 +217,7 @@ PNTR_PEANUTGB_API bool pntr_update_peanutgb(struct gb_s* gb, pntr_image* dst, in
 
     gb_run_frame(gb);
 
-    gb_tick_rtc(gb);
+    //gb_tick_rtc(gb);
 
     if (priv->error > 0) {
         return false;
