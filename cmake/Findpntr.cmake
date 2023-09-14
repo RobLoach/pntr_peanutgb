@@ -3,6 +3,6 @@ include(FetchContent)
 FetchContent_Declare(
     pntr
     GIT_REPOSITORY https://github.com/robloach/pntr.git
-    GIT_TAG f1bde2f10cef2bef189e7a890c6667398e3aad50
+    GIT_TAG e9492ad2c7e178957e40c99d34224f6e53072cce
 )
 FetchContent_MakeAvailable(pntr)

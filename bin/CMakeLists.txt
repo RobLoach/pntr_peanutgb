@@ -4,7 +4,6 @@ set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../cmake")
 # Dependencies
 find_package(pntr REQUIRED)
 find_package(pntr_app REQUIRED)
-find_package(Nuklear REQUIRED)
 
 # Iterate through each .c file
 file(GLOB sources ${CMAKE_CURRENT_SOURCE_DIR}/*.c)
@@ -19,7 +18,7 @@ foreach (example_source ${example_sources})
     string(REPLACE ".c" "" example_name ${example_name})
 
     # raylib
-    if (PNTR_NUKLEAR_BUILD_EXAMPLES_RAYLIB)
+    if (PNTR_PEANUTGB_BUILD_BIN_RAYLIB)
         find_package(raylib QUIET)
         set(example_name_raylib ${example_name}_raylib)
 
@@ -30,15 +29,14 @@ foreach (example_source ${example_sources})
             raylib
             pntr
             pntr_app
-            pntr_nuklear
+            pntr_peanutgb
             m
-            Nuklear
         )
         target_compile_definitions(${example_name_raylib} PUBLIC PNTR_APP_RAYLIB)
     endif()
 
     # CLI
-    if (PNTR_NUKLEAR_BUILD_EXAMPLES_CLI AND NOT EMSCRIPTEN)
+    if (PNTR_PEANUTGB_BUILD_BIN_CLI AND NOT EMSCRIPTEN)
         set(example_name_cli ${example_name}_cli)
 
         add_executable(${example_name_cli}
@@ -47,9 +45,8 @@ foreach (example_source ${example_sources})
         target_link_libraries(${example_name_cli} PUBLIC
             pntr
             pntr_app
-            pntr_nuklear
+            pntr_peanutgb
             m
-            Nuklear
         )
         target_compile_definitions(${example_name_cli} PUBLIC PNTR_APP_CLI)
         set_property(TARGET ${example_name_cli} PROPERTY C_STANDARD 99)
