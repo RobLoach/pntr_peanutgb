@@ -53,6 +53,8 @@ PNTR_PEANUTGB_API struct gb_s* pntr_load_peanutgb(const char* fileName);
 PNTR_PEANUTGB_API struct gb_s* pntr_load_peanutgb_from_memory(const void* data);
 PNTR_PEANUTGB_API void pntr_unload_peanutgb(struct gb_s* gb);
 PNTR_PEANUTGB_API bool pntr_update_peanutgb(struct gb_s* gb);
+PNTR_PEANUTGB_API int pntr_peanutgb_width();
+PNTR_PEANUTGB_API int pntr_peanutgb_height();
 PNTR_PEANUTGB_API void pntr_draw_peanutgb(pntr_image* dst, struct gb_s* gb, int posX, int posY);
 PNTR_PEANUTGB_API void pntr_draw_peanutgb_scaled(pntr_image* dst, struct gb_s* gb, int posX, int posY, float scaleX, float scaleY, float offsetX, float offsetY, pntr_filter filter);
 PNTR_PEANUTGB_API void pntr_peanutgb_set_palette(struct gb_s* gb, pntr_color col1, pntr_color col2, pntr_color col3, pntr_color col4);
@@ -200,7 +202,7 @@ PNTR_PEANUTGB_API struct gb_s* pntr_load_peanutgb_from_memory(const void* data) 
     priv->rom = (uint8_t*)data;
     priv->error = false;
     priv->tickCounter = 0;
-    priv->fb = pntr_new_image(LCD_WIDTH, LCD_HEIGHT);
+    priv->fb = pntr_new_image(pntr_peanutgb_width(), pntr_peanutgb_height());
 
     enum gb_init_error_e ret = gb_init(gb,
             &pntr_peanutgb_rom_read,
@@ -365,6 +367,14 @@ PNTR_PEANUTGB_API void pntr_peanutgb_event(struct gb_s* gb, pntr_app_event* even
     }
 }
 #endif
+
+PNTR_PEANUTGB_API int pntr_peanutgb_width() {
+    return LCD_WIDTH;
+}
+
+PNTR_PEANUTGB_API int pntr_peanutgb_height() {
+    return LCD_HEIGHT;
+}
 
 #ifdef __cplusplus
 }

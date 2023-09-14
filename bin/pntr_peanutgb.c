@@ -56,8 +56,8 @@ void Close(pntr_app* app) {
 
 pntr_app Main(int argc, char* argv[]) {
     return (pntr_app) {
-        .width = LCD_WIDTH,
-        .height = LCD_HEIGHT,
+        .width = pntr_peanutgb_width(),
+        .height = pntr_peanutgb_height(),
         .title = "pntr_peanutgb",
         .init = Init,
         .update = Update,
