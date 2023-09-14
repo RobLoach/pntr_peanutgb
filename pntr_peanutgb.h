@@ -1,12 +1,12 @@
 /**********************************************************************************************
 *
-*   pntr_peanutgb - Peanut-GB for pntr.
+*   pntr_peanutgb - Peanut-GB Gameboy emulator for pntr.
 *
 *   Copyright 2023 Rob Loach (@RobLoach)
 *
 *   DEPENDENCIES:
 *       pntr https://github.com/robloach/pntr
-*       pntr_peanutgb https://github.com/deltabeard/peanut-gb
+*       Peanut-GB https://github.com/deltabeard/peanut-gb
 *
 *   LICENSE: zlib/libpng
 *
@@ -37,23 +37,25 @@
 extern "C" {
 #endif
 
-//#define ENABLE_LCD 1
-#ifndef PNTR_PEANUTGB_PEANUT_GB_H
-#define PNTR_PEANUTGB_PEANUT_GB_H "Peanut-GB/peanut_gb.h"
-#endif
-
-#ifndef PNTR_PEANUTGB_INCLUDED
-#define PNTR_PEANUTGB_INCLUDED
-#include PNTR_PEANUTGB_PEANUT_GB_H
-#endif
-
 #ifndef PNTR_PEANUTGB_API
     #define PNTR_PEANUTGB_API PNTR_API
 #endif
 
-PNTR_PEANUTGB_API void* pntr_load_peanutgb(const void* data);
+struct gb_s;
+
+/**
+ * Takes ownership of the data.
+ *
+ * @param data The rom data.
+ */
+PNTR_PEANUTGB_API struct gb_s* pntr_load_peanutgb(const void* data);
 PNTR_PEANUTGB_API void pntr_unload_peanutgb(struct gb_s* gb);
 PNTR_PEANUTGB_API bool pntr_update_peanutgb(struct gb_s* gb, pntr_image* dst, int posX, int posY);
+PNTR_PEANUTGB_API void pntr_peanutgb_set_palette(struct gb_s* gb, pntr_color col1, pntr_color col2, pntr_color col3, pntr_color col4);
+
+#ifdef PNTR_APP_API
+PNTR_PEANUTGB_API void pntr_peanutgb_event(struct gb_s* gb, pntr_app_event* event);
+#endif
 
 #ifdef __cplusplus
 }
@@ -65,12 +67,16 @@ PNTR_PEANUTGB_API bool pntr_update_peanutgb(struct gb_s* gb, pntr_image* dst, in
 #ifndef PNTR_PEANUTGB_IMPLEMENTATION_ONCE
 #define PNTR_PEANUTGB_IMPLEMENTATION_ONCE
 
+#ifndef PNTR_PEANUTGB_PEANUT_GB_H
+#define PNTR_PEANUTGB_PEANUT_GB_H "Peanut-GB/peanut_gb.h"
+#endif
+#include PNTR_PEANUTGB_PEANUT_GB_H
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-struct priv_t
-{
+struct priv_t {
 	/* Pointer to allocated memory holding GB file. */
 	uint8_t *rom;
 	/* Pointer to allocated memory holding save file. */
@@ -81,15 +87,31 @@ struct priv_t
     int posX;
     int posY;
     enum gb_error_e error;
+    int tickCounter;
 
     pntr_color palette[4];
 };
 
+PNTR_PEANUTGB_API void pntr_peanutgb_set_palette(struct gb_s* gb, pntr_color col1, pntr_color col2, pntr_color col3, pntr_color col4) {
+    if (gb == NULL) {
+        return;
+    }
+
+	struct priv_t *priv = gb->direct.priv;
+    if (priv == NULL) {
+        return;
+    }
+
+    priv->palette[0] = col1;
+    priv->palette[1] = col2;
+    priv->palette[2] = col3;
+    priv->palette[3] = col4;
+}
+
 /**
  * Returns a byte from the ROM file at the given address.
  */
-uint8_t pntr_peanutgb_rom_read(struct gb_s *gb, const uint_fast32_t addr)
-{
+uint8_t pntr_peanutgb_rom_read(struct gb_s *gb, const uint_fast32_t addr) {
 	const struct priv_t * const p = gb->direct.priv;
 	return p->rom[addr];
 }
@@ -97,8 +119,7 @@ uint8_t pntr_peanutgb_rom_read(struct gb_s *gb, const uint_fast32_t addr)
 /**
  * Returns a byte from the cartridge RAM at the given address.
  */
-uint8_t pntr_peanutgb_cart_ram_read(struct gb_s *gb, const uint_fast32_t addr)
-{
+uint8_t pntr_peanutgb_cart_ram_read(struct gb_s *gb, const uint_fast32_t addr) {
 	const struct priv_t * const p = gb->direct.priv;
 	return p->cart_ram[addr];
 }
@@ -106,9 +127,7 @@ uint8_t pntr_peanutgb_cart_ram_read(struct gb_s *gb, const uint_fast32_t addr)
 /**
  * Writes a given byte to the cartridge RAM at the given address.
  */
-void pntr_peanutgb_cart_ram_write(struct gb_s *gb, const uint_fast32_t addr,
-		       const uint8_t val)
-{
+void pntr_peanutgb_cart_ram_write(struct gb_s *gb, const uint_fast32_t addr, const uint8_t val) {
 	const struct priv_t * const p = gb->direct.priv;
 	p->cart_ram[addr] = val;
 }
@@ -116,8 +135,7 @@ void pntr_peanutgb_cart_ram_write(struct gb_s *gb, const uint_fast32_t addr,
 /**
  * Ignore all errors.
  */
-void pntr_peanutgb_error(struct gb_s *gb, const enum gb_error_e gb_err, const uint16_t val)
-{
+void pntr_peanutgb_error(struct gb_s *gb, const enum gb_error_e gb_err, const uint16_t val) {
 	const char* gb_err_str[GB_INVALID_MAX] = {
 		"UNKNOWN",
 		"INVALID OPCODE",
@@ -125,6 +143,7 @@ void pntr_peanutgb_error(struct gb_s *gb, const enum gb_error_e gb_err, const ui
 		"INVALID WRITE",
 		"HALT FOREVER"
 	};
+
 	struct priv_t *priv = gb->direct.priv;
     priv->error = gb_err;
 
@@ -132,17 +151,15 @@ void pntr_peanutgb_error(struct gb_s *gb, const enum gb_error_e gb_err, const ui
 			gb_err, gb_err_str[gb_err]);
 
 	/* Free memory and then exit. */
-	free(priv->cart_ram);
-	free(priv->rom);
+	pntr_unload_memory(priv->cart_ram);
+	pntr_unload_memory(priv->rom);
 }
 
 #ifdef ENABLE_LCD
 /**
  * Draws scanline into framebuffer.
  */
-void pntr_peanutgb_lcd_draw_line(struct gb_s *gb, const uint8_t pixels[160],
-		   const uint_least8_t line)
-{
+void pntr_peanutgb_lcd_draw_line(struct gb_s *gb, const uint8_t pixels[160], const uint_least8_t line) {
 	struct priv_t *priv = gb->direct.priv;
 
     int posY = priv->posY + line;
@@ -155,8 +172,7 @@ void pntr_peanutgb_lcd_draw_line(struct gb_s *gb, const uint8_t pixels[160],
 }
 #endif
 
-#include <stdio.h> // TODO: REmove this
-PNTR_PEANUTGB_API void* pntr_load_peanutgb(const void* data) {
+PNTR_PEANUTGB_API struct gb_s* pntr_load_peanutgb(const void* data) {
     if (data == NULL) {
         return NULL;
     }
@@ -174,11 +190,7 @@ PNTR_PEANUTGB_API void* pntr_load_peanutgb(const void* data) {
 
     priv->rom = (uint8_t*)data;
     priv->error = false;
-    
-    priv->palette[0] = pntr_get_color(0xe0f8d0FF);
-    priv->palette[1] = pntr_get_color(0x88c070FF);
-    priv->palette[2] = pntr_get_color(0x346856FF);
-    priv->palette[3] = pntr_get_color(0x081820FF);
+    priv->tickCounter = 0;
 
     enum gb_init_error_e ret = gb_init(gb,
             &pntr_peanutgb_rom_read,
@@ -187,13 +199,20 @@ PNTR_PEANUTGB_API void* pntr_load_peanutgb(const void* data) {
 			&pntr_peanutgb_error,
 			priv);
 
-	if(ret != GB_INIT_NO_ERROR)
-	{
+	if(ret != GB_INIT_NO_ERROR) {
         pntr_unload_peanutgb(gb);
 		return NULL;
 	}
 
-    priv->cart_ram = malloc(gb_get_save_size(gb));
+    // https://lospec.com/palette-list/nintendo-gameboy-bgb
+    pntr_peanutgb_set_palette(gb,
+        pntr_get_color(0xe0f8d0FF),
+        pntr_get_color(0x88c070FF),
+        pntr_get_color(0x346856FF),
+        pntr_get_color(0x081820FF)
+    );
+
+    priv->cart_ram = pntr_load_memory(gb_get_save_size(gb));
 
     #ifdef ENABLE_LCD
     gb_init_lcd(gb, pntr_peanutgb_lcd_draw_line);
@@ -208,22 +227,23 @@ PNTR_PEANUTGB_API bool pntr_update_peanutgb(struct gb_s* gb, pntr_image* dst, in
     }
 
     /* Execute CPU cycles until the screen has to be redrawn. */
-
     struct priv_t* priv = gb->direct.priv;
     priv->fb = dst;
     priv->posX = posX;
     priv->posY = posY;
 
-
     gb_run_frame(gb);
 
-    //gb_tick_rtc(gb);
+    // RTC Timer
+    if (priv->tickCounter++ > 60) {
+        gb_tick_rtc(gb);
+    }
 
     if (priv->error > 0) {
         return false;
     }
 
-    return !priv->error;
+    return true;
 }
 
 PNTR_PEANUTGB_API void pntr_unload_peanutgb(struct gb_s* gb) {
@@ -241,6 +261,85 @@ PNTR_PEANUTGB_API void pntr_unload_peanutgb(struct gb_s* gb) {
     pntr_unload_memory(gb);
     gb = NULL;
 }
+
+#ifdef PNTR_APP_API
+PNTR_PEANUTGB_API void pntr_peanutgb_event(struct gb_s* gb, pntr_app_event* event) {
+    if (gb == NULL || event == NULL) {
+        return;
+    }
+
+    switch (event->type) {
+        case PNTR_APP_EVENTTYPE_GAMEPAD_BUTTON_DOWN:
+        case PNTR_APP_EVENTTYPE_GAMEPAD_BUTTON_UP:
+            switch(event->gamepadButton) {
+                case PNTR_APP_GAMEPAD_BUTTON_A:
+                    gb->direct.joypad_bits.a = event->type != PNTR_APP_EVENTTYPE_GAMEPAD_BUTTON_DOWN;
+                    break;
+                case PNTR_APP_GAMEPAD_BUTTON_B:
+                    gb->direct.joypad_bits.b = event->type != PNTR_APP_EVENTTYPE_GAMEPAD_BUTTON_DOWN;
+                    break;
+                case PNTR_APP_GAMEPAD_BUTTON_SELECT:
+                    gb->direct.joypad_bits.select = event->type != PNTR_APP_EVENTTYPE_GAMEPAD_BUTTON_DOWN;
+                    break;
+                case PNTR_APP_GAMEPAD_BUTTON_START:
+                    gb->direct.joypad_bits.start = event->type != PNTR_APP_EVENTTYPE_GAMEPAD_BUTTON_DOWN;
+                    break;
+                case PNTR_APP_GAMEPAD_BUTTON_UP:
+                    gb->direct.joypad_bits.up = event->type != PNTR_APP_EVENTTYPE_GAMEPAD_BUTTON_DOWN;
+                    break;
+                case PNTR_APP_GAMEPAD_BUTTON_RIGHT:
+                    gb->direct.joypad_bits.right = event->type != PNTR_APP_EVENTTYPE_GAMEPAD_BUTTON_DOWN;
+                    break;
+                case PNTR_APP_GAMEPAD_BUTTON_DOWN:
+                    gb->direct.joypad_bits.down = event->type != PNTR_APP_EVENTTYPE_GAMEPAD_BUTTON_DOWN;
+                    break;
+                case PNTR_APP_GAMEPAD_BUTTON_LEFT:
+                    gb->direct.joypad_bits.left = event->type != PNTR_APP_EVENTTYPE_GAMEPAD_BUTTON_DOWN;
+                    break;
+                case PNTR_APP_GAMEPAD_BUTTON_MENU:
+                    gb_reset(gb);
+                    break;
+            }
+        break;
+
+        case PNTR_APP_EVENTTYPE_KEY_DOWN:
+        case PNTR_APP_EVENTTYPE_KEY_UP:
+            switch(event->key) {
+                case PNTR_APP_KEY_Z:
+                    gb->direct.joypad_bits.a = event->type != PNTR_APP_EVENTTYPE_KEY_DOWN;
+                    break;
+                case PNTR_APP_KEY_X:
+                    gb->direct.joypad_bits.b = event->type != PNTR_APP_EVENTTYPE_KEY_DOWN;
+                    break;
+                case PNTR_APP_KEY_RIGHT_SHIFT:
+                case PNTR_APP_KEY_BACKSPACE:
+                    gb->direct.joypad_bits.select = event->type != PNTR_APP_EVENTTYPE_KEY_DOWN;
+                    break;
+                case PNTR_APP_KEY_ENTER:
+                    gb->direct.joypad_bits.start = event->type != PNTR_APP_EVENTTYPE_KEY_DOWN;
+                    break;
+                case PNTR_APP_KEY_UP:
+                    gb->direct.joypad_bits.up = event->type != PNTR_APP_EVENTTYPE_KEY_DOWN;
+                    break;
+                case PNTR_APP_KEY_RIGHT:
+                    gb->direct.joypad_bits.right = event->type != PNTR_APP_EVENTTYPE_KEY_DOWN;
+                    break;
+                case PNTR_APP_KEY_DOWN:
+                    gb->direct.joypad_bits.down = event->type != PNTR_APP_EVENTTYPE_KEY_DOWN;
+                    break;
+                case PNTR_APP_KEY_LEFT:
+                    gb->direct.joypad_bits.left = event->type != PNTR_APP_EVENTTYPE_KEY_DOWN;
+                    break;
+                case PNTR_APP_KEY_R:
+                    if (event->type == PNTR_APP_EVENTTYPE_KEY_UP) {
+                        gb_reset(gb);
+                    }
+                    break;
+            }
+        break;
+    }
+}
+#endif
 
 #ifdef __cplusplus
 }
