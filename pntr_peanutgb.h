@@ -43,15 +43,20 @@ extern "C" {
 
 struct gb_s;
 
+PNTR_PEANUTGB_API struct gb_s* pntr_load_peanutgb(const char* fileName);
+
 /**
  * Takes ownership of the data.
  *
  * @param data The rom data.
  */
-PNTR_PEANUTGB_API struct gb_s* pntr_load_peanutgb(const void* data);
+PNTR_PEANUTGB_API struct gb_s* pntr_load_peanutgb_from_memory(const void* data);
 PNTR_PEANUTGB_API void pntr_unload_peanutgb(struct gb_s* gb);
-PNTR_PEANUTGB_API bool pntr_update_peanutgb(struct gb_s* gb, pntr_image* dst, int posX, int posY);
+PNTR_PEANUTGB_API bool pntr_update_peanutgb(struct gb_s* gb);
+PNTR_PEANUTGB_API void pntr_draw_peanutgb(pntr_image* dst, struct gb_s* gb, int posX, int posY);
+PNTR_PEANUTGB_API void pntr_draw_peanutgb_scaled(pntr_image* dst, struct gb_s* gb, int posX, int posY, float scaleX, float scaleY, float offsetX, float offsetY, pntr_filter filter);
 PNTR_PEANUTGB_API void pntr_peanutgb_set_palette(struct gb_s* gb, pntr_color col1, pntr_color col2, pntr_color col3, pntr_color col4);
+PNTR_PEANUTGB_API pntr_image* pntr_peanutgb_image(struct gb_s* gb);
 
 #ifdef PNTR_APP_API
 PNTR_PEANUTGB_API void pntr_peanutgb_event(struct gb_s* gb, pntr_app_event* event);
@@ -84,8 +89,6 @@ struct priv_t {
 
 	/* Frame buffer */
 	pntr_image* fb;
-    int posX;
-    int posY;
     enum gb_error_e error;
     int tickCounter;
 
@@ -162,28 +165,34 @@ void pntr_peanutgb_error(struct gb_s *gb, const enum gb_error_e gb_err, const ui
 void pntr_peanutgb_lcd_draw_line(struct gb_s *gb, const uint8_t pixels[160], const uint_least8_t line) {
 	struct priv_t *priv = gb->direct.priv;
 
-    int posY = priv->posY + line;
+    int posY = line;
 	for(unsigned int x = 0; x < LCD_WIDTH; x++) {
-        int posX = priv->posX + x;
-
         pntr_color color = priv->palette[pixels[x] & 3];
-        pntr_draw_point(priv->fb, posX, posY, color);
+        pntr_draw_point_unsafe(priv->fb, x, posY, color);
     }
 }
 #endif
 
-PNTR_PEANUTGB_API struct gb_s* pntr_load_peanutgb(const void* data) {
+struct gb_s* pntr_load_peanutgb(const char* fileName) {
+    unsigned int bytesRead;
+    const void* data = pntr_load_file(fileName, &bytesRead);
+    return pntr_load_peanutgb_from_memory(data);
+}
+
+PNTR_PEANUTGB_API struct gb_s* pntr_load_peanutgb_from_memory(const void* data) {
     if (data == NULL) {
         return NULL;
     }
 
     struct gb_s* gb = pntr_load_memory(sizeof(struct gb_s));
     if (gb == NULL) {
+        pntr_unload_memory((void*)data);
         return NULL;
     }
 
     struct priv_t* priv = pntr_load_memory(sizeof(struct priv_t));
     if (priv == NULL) {
+        pntr_unload_memory((void*)data);
         pntr_unload_peanutgb(gb);
         return NULL;
     }
@@ -191,6 +200,7 @@ PNTR_PEANUTGB_API struct gb_s* pntr_load_peanutgb(const void* data) {
     priv->rom = (uint8_t*)data;
     priv->error = false;
     priv->tickCounter = 0;
+    priv->fb = pntr_new_image(LCD_WIDTH, LCD_HEIGHT);
 
     enum gb_init_error_e ret = gb_init(gb,
             &pntr_peanutgb_rom_read,
@@ -221,16 +231,30 @@ PNTR_PEANUTGB_API struct gb_s* pntr_load_peanutgb(const void* data) {
     return gb;
 }
 
-PNTR_PEANUTGB_API bool pntr_update_peanutgb(struct gb_s* gb, pntr_image* dst, int posX, int posY) {
+PNTR_PEANUTGB_API void pntr_draw_peanutgb(pntr_image* dst, struct gb_s* gb, int posX, int posY) {
+    pntr_draw_image(dst, pntr_peanutgb_image(gb), posX, posY);
+}
+
+PNTR_PEANUTGB_API pntr_image* pntr_peanutgb_image(struct gb_s* gb) {
+    if (gb == NULL) {
+        return NULL;
+    }
+
+    struct priv_t* priv = (struct priv_t*)gb->direct.priv;
+    return priv->fb;
+}
+
+PNTR_PEANUTGB_API void pntr_draw_peanutgb_scaled(pntr_image* dst, struct gb_s* gb, int posX, int posY, float scaleX, float scaleY, float offsetX, float offsetY, pntr_filter filter) {
+    pntr_draw_image_scaled(dst, pntr_peanutgb_image(gb), posX, posY, scaleX, scaleY, offsetX, offsetY, filter);
+}
+
+PNTR_PEANUTGB_API bool pntr_update_peanutgb(struct gb_s* gb) {
     if (gb == NULL) {
         return false;
     }
 
     /* Execute CPU cycles until the screen has to be redrawn. */
     struct priv_t* priv = gb->direct.priv;
-    priv->fb = dst;
-    priv->posX = posX;
-    priv->posY = posY;
 
     gb_run_frame(gb);
 
@@ -255,6 +279,7 @@ PNTR_PEANUTGB_API void pntr_unload_peanutgb(struct gb_s* gb) {
     if (priv != NULL) {
         pntr_unload_memory(priv->cart_ram);
         pntr_unload_memory(priv->rom);
+        pntr_unload_image(priv->fb);
         pntr_unload_memory(priv);
     }
 

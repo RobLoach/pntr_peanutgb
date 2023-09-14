@@ -15,25 +15,31 @@
 bool Init(pntr_app* app) {
     const char* fileName = (const char*)pntr_app_userdata(app);
 
-    // TODO: Have pntr_app provide the full data so we don't have to load the file.
-    unsigned int bytesRead;
-    void* data = pntr_load_file(fileName, &bytesRead);
-
-    // Load peanutgb
-    struct gb_s* gb = pntr_load_peanutgb(data);
+    // Load Peanut-GB
+    // TODO: Use pntr_load_peanutgb_from_memory() for the whole app data instead
+    struct gb_s* gb = pntr_load_peanutgb(fileName);
     if (gb == NULL) {
-        pntr_unload_file(data);
         return false;
     }
 
+    // Save the gameboy state as the userdata for the application.
     pntr_app_set_userdata(app, gb);
+
     return true;
 }
 
 bool Update(pntr_app* app, pntr_image* screen) {
     struct gb_s* gb = (struct gb_s*)pntr_app_userdata(app);
 
-    return pntr_update_peanutgb(gb, screen, 0, 0);
+    // Update the gb state
+    if (!pntr_update_peanutgb(gb)) {
+        return false;
+    };
+
+    // Render on the screen
+    pntr_draw_peanutgb(screen, gb, 0, 0);
+
+    return true;
 }
 
 void Event(pntr_app* app, pntr_app_event* event) {

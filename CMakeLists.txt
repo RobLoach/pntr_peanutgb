@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.11)
 project(pntr_peanutgb
     DESCRIPTION "pntr_peanutgb: Peanut-GB for pntr"
     HOMEPAGE_URL "https://github.com/robloach/pntr_peanutgb"
-    VERSION 0.1.0
+    VERSION 0.2.0
     LANGUAGES C
 )
 

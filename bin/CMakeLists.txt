@@ -30,7 +30,6 @@ foreach (example_source ${example_sources})
             pntr
             pntr_app
             pntr_peanutgb
-            m
         )
         target_compile_definitions(${example_name_raylib} PUBLIC PNTR_APP_RAYLIB)
     endif()
@@ -46,7 +45,6 @@ foreach (example_source ${example_sources})
             pntr
             pntr_app
             pntr_peanutgb
-            m
         )
         target_compile_definitions(${example_name_cli} PUBLIC PNTR_APP_CLI)
         set_property(TARGET ${example_name_cli} PROPERTY C_STANDARD 99)
