@@ -74,6 +74,9 @@ PNTR_PEANUTGB_API void pntr_peanutgb_event(struct gb_s* gb, pntr_app_event* even
 #ifndef PNTR_PEANUTGB_IMPLEMENTATION_ONCE
 #define PNTR_PEANUTGB_IMPLEMENTATION_ONCE
 
+// Peanut-GB Configuration
+#define ENABLE_LCD 1
+
 #ifndef PNTR_PEANUTGB_PEANUT_GB_H
 #define PNTR_PEANUTGB_PEANUT_GB_H "Peanut-GB/peanut_gb.h"
 #endif
@@ -83,10 +86,10 @@ PNTR_PEANUTGB_API void pntr_peanutgb_event(struct gb_s* gb, pntr_app_event* even
 extern "C" {
 #endif
 
-struct priv_t {
+typedef struct pntr_peanutgb_priv {
 	/* Pointer to allocated memory holding GB file. */
 	uint8_t *rom;
-    
+
 	/* Pointer to allocated memory holding save file. */
 	uint8_t *cart_ram;
 
@@ -96,14 +99,14 @@ struct priv_t {
     int tickCounter;
 
     pntr_color palette[4];
-};
+} pntr_peanutgb_priv;
 
 PNTR_PEANUTGB_API void pntr_peanutgb_set_palette(struct gb_s* gb, pntr_color col1, pntr_color col2, pntr_color col3, pntr_color col4) {
     if (gb == NULL) {
         return;
     }
 
-	struct priv_t *priv = gb->direct.priv;
+	pntr_peanutgb_priv* priv = gb->direct.priv;
     if (priv == NULL) {
         return;
     }
@@ -118,7 +121,7 @@ PNTR_PEANUTGB_API void pntr_peanutgb_set_palette(struct gb_s* gb, pntr_color col
  * Returns a byte from the ROM file at the given address.
  */
 uint8_t pntr_peanutgb_rom_read(struct gb_s *gb, const uint_fast32_t addr) {
-	const struct priv_t * const p = gb->direct.priv;
+	const pntr_peanutgb_priv* const p = gb->direct.priv;
 	return p->rom[addr];
 }
 
@@ -126,7 +129,7 @@ uint8_t pntr_peanutgb_rom_read(struct gb_s *gb, const uint_fast32_t addr) {
  * Returns a byte from the cartridge RAM at the given address.
  */
 uint8_t pntr_peanutgb_cart_ram_read(struct gb_s *gb, const uint_fast32_t addr) {
-	const struct priv_t * const p = gb->direct.priv;
+	const pntr_peanutgb_priv* const p = gb->direct.priv;
 	return p->cart_ram[addr];
 }
 
@@ -134,7 +137,7 @@ uint8_t pntr_peanutgb_cart_ram_read(struct gb_s *gb, const uint_fast32_t addr) {
  * Writes a given byte to the cartridge RAM at the given address.
  */
 void pntr_peanutgb_cart_ram_write(struct gb_s *gb, const uint_fast32_t addr, const uint8_t val) {
-	const struct priv_t * const p = gb->direct.priv;
+	const pntr_peanutgb_priv* const p = gb->direct.priv;
 	p->cart_ram[addr] = val;
 }
 
@@ -150,7 +153,7 @@ void pntr_peanutgb_error(struct gb_s *gb, const enum gb_error_e gb_err, const ui
 		"HALT FOREVER"
 	};
 
-	struct priv_t *priv = gb->direct.priv;
+	pntr_peanutgb_priv* priv = gb->direct.priv;
     priv->error = gb_err;
 
 	fprintf(stderr, "Error %d occurred: %s\n. Exiting.\n",
@@ -166,7 +169,7 @@ void pntr_peanutgb_error(struct gb_s *gb, const enum gb_error_e gb_err, const ui
  * Draws scanline into framebuffer.
  */
 void pntr_peanutgb_lcd_draw_line(struct gb_s *gb, const uint8_t pixels[160], const uint_least8_t line) {
-	struct priv_t *priv = gb->direct.priv;
+	pntr_peanutgb_priv* priv = gb->direct.priv;
 
     int posY = line;
 	for(unsigned int x = 0; x < LCD_WIDTH; x++) {
@@ -189,14 +192,12 @@ PNTR_PEANUTGB_API struct gb_s* pntr_load_peanutgb_from_memory(const void* data) 
 
     struct gb_s* gb = pntr_load_memory(sizeof(struct gb_s));
     if (gb == NULL) {
-        pntr_unload_memory((void*)data);
         return NULL;
     }
 
-    struct priv_t* priv = pntr_load_memory(sizeof(struct priv_t));
+    pntr_peanutgb_priv* priv = pntr_load_memory(sizeof(pntr_peanutgb_priv));
     if (priv == NULL) {
-        pntr_unload_memory((void*)data);
-        pntr_unload_peanutgb(gb);
+        pntr_unload_memory(gb);
         return NULL;
     }
 
@@ -213,7 +214,9 @@ PNTR_PEANUTGB_API struct gb_s* pntr_load_peanutgb_from_memory(const void* data) 
 			priv);
 
 	if(ret != GB_INIT_NO_ERROR) {
-        pntr_unload_peanutgb(gb);
+        pntr_unload_image(priv->fb);
+        pntr_unload_memory(priv);
+        pntr_unload_memory(gb);
 		return NULL;
 	}
 
@@ -243,7 +246,7 @@ PNTR_PEANUTGB_API pntr_image* pntr_peanutgb_image(struct gb_s* gb) {
         return NULL;
     }
 
-    struct priv_t* priv = (struct priv_t*)gb->direct.priv;
+    pntr_peanutgb_priv* priv = (pntr_peanutgb_priv*)gb->direct.priv;
     return priv->fb;
 }
 
@@ -257,7 +260,7 @@ PNTR_PEANUTGB_API bool pntr_update_peanutgb(struct gb_s* gb) {
     }
 
     /* Execute CPU cycles until the screen has to be redrawn. */
-    struct priv_t* priv = gb->direct.priv;
+    pntr_peanutgb_priv* priv = gb->direct.priv;
 
     gb_run_frame(gb);
 
@@ -278,7 +281,7 @@ PNTR_PEANUTGB_API void pntr_unload_peanutgb(struct gb_s* gb) {
         return;
     }
 
-    struct priv_t* priv = gb->direct.priv;
+    pntr_peanutgb_priv* priv = gb->direct.priv;
     if (priv != NULL) {
         pntr_unload_memory(priv->cart_ram);
         pntr_unload_memory(priv->rom);
@@ -287,7 +290,6 @@ PNTR_PEANUTGB_API void pntr_unload_peanutgb(struct gb_s* gb) {
     }
 
     pntr_unload_memory(gb);
-    gb = NULL;
 }
 
 #ifdef PNTR_APP_API
@@ -300,10 +302,10 @@ PNTR_PEANUTGB_API void pntr_peanutgb_event(struct gb_s* gb, pntr_app_event* even
         case PNTR_APP_EVENTTYPE_GAMEPAD_BUTTON_DOWN:
         case PNTR_APP_EVENTTYPE_GAMEPAD_BUTTON_UP:
             switch(event->gamepadButton) {
-                case PNTR_APP_GAMEPAD_BUTTON_A:
+                case PNTR_APP_GAMEPAD_BUTTON_B:
                     gb->direct.joypad_bits.a = event->type != PNTR_APP_EVENTTYPE_GAMEPAD_BUTTON_DOWN;
                     break;
-                case PNTR_APP_GAMEPAD_BUTTON_B:
+                case PNTR_APP_GAMEPAD_BUTTON_A:
                     gb->direct.joypad_bits.b = event->type != PNTR_APP_EVENTTYPE_GAMEPAD_BUTTON_DOWN;
                     break;
                 case PNTR_APP_GAMEPAD_BUTTON_SELECT:
@@ -333,10 +335,10 @@ PNTR_PEANUTGB_API void pntr_peanutgb_event(struct gb_s* gb, pntr_app_event* even
         case PNTR_APP_EVENTTYPE_KEY_DOWN:
         case PNTR_APP_EVENTTYPE_KEY_UP:
             switch(event->key) {
-                case PNTR_APP_KEY_Z:
+                case PNTR_APP_KEY_X:
                     gb->direct.joypad_bits.a = event->type != PNTR_APP_EVENTTYPE_KEY_DOWN;
                     break;
-                case PNTR_APP_KEY_X:
+                case PNTR_APP_KEY_Z:
                     gb->direct.joypad_bits.b = event->type != PNTR_APP_EVENTTYPE_KEY_DOWN;
                     break;
                 case PNTR_APP_KEY_RIGHT_SHIFT:

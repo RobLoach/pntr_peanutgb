@@ -19,6 +19,7 @@ endif()
 
 option(PNTR_PEANUTGB_BUILD_BIN "pntr_peanutgb: bin" ${PNTR_PEANUTGB_IS_MAIN})
 option(PNTR_PEANUTGB_BUILD_BIN_RAYLIB "pntr_peanutgb: raylib" ${PNTR_PEANUTGB_IS_MAIN})
+option(PNTR_PEANUTGB_BUILD_BIN_SDL "pntr_peanutgb: SDL" ${PNTR_PEANUTGB_IS_MAIN})
 option(PNTR_PEANUTGB_BUILD_BIN_CLI "pntr_peanutgb: CLI" ${PNTR_PEANUTGB_IS_MAIN})
 
 if (PNTR_PEANUTGB_BUILD_BIN)
