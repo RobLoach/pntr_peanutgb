@@ -13,11 +13,8 @@
 #include "../pntr_peanutgb.h"
 
 bool Init(pntr_app* app) {
-    const char* fileName = (const char*)pntr_app_userdata(app);
-
     // Load Peanut-GB
-    // TODO: Use pntr_load_peanutgb_from_memory() for the whole app data instead
-    struct gb_s* gb = pntr_load_peanutgb(fileName);
+    struct gb_s* gb = pntr_load_peanutgb_from_memory(pntr_app_file_data(app, NULL, false));
     if (gb == NULL) {
         return false;
     }

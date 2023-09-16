@@ -86,6 +86,7 @@ extern "C" {
 struct priv_t {
 	/* Pointer to allocated memory holding GB file. */
 	uint8_t *rom;
+    
 	/* Pointer to allocated memory holding save file. */
 	uint8_t *cart_ram;
 
