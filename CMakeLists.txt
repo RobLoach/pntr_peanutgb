@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.11)
 project(pntr_peanutgb
-    DESCRIPTION "pntr_peanutgb: Peanut-GB for pntr"
+    DESCRIPTION "pntr_peanutgb"
     HOMEPAGE_URL "https://github.com/robloach/pntr_peanutgb"
-    VERSION 0.2.0
+    VERSION 0.0.1
     LANGUAGES C
 )
 
@@ -17,11 +17,19 @@ else()
     set(PNTR_PEANUTGB_IS_MAIN FALSE)
 endif()
 
-option(PNTR_PEANUTGB_BUILD_BIN "pntr_peanutgb: bin" ${PNTR_PEANUTGB_IS_MAIN})
-option(PNTR_PEANUTGB_BUILD_BIN_RAYLIB "pntr_peanutgb: raylib" ${PNTR_PEANUTGB_IS_MAIN})
-option(PNTR_PEANUTGB_BUILD_BIN_SDL "pntr_peanutgb: SDL" ${PNTR_PEANUTGB_IS_MAIN})
-option(PNTR_PEANUTGB_BUILD_BIN_CLI "pntr_peanutgb: CLI" ${PNTR_PEANUTGB_IS_MAIN})
+option(PNTR_PEANUTGB_BUILD "Example" ${PNTR_PEANUTGB_IS_MAIN})
 
-if (PNTR_PEANUTGB_BUILD_BIN)
-    add_subdirectory(bin)
+if (PNTR_PEANUTGB_BUILD)
+    option(SDL "Build SDL" TRUE)
+    option(RAYLIB "Build raylib" TRUE)
+    option(LIBRETRO "Build libretro" TRUE)
+    option(CLI "Build CLI" TRUE)
+
+    set(SOURCES
+        bin/pntr_peanutgb.c
+    )
+
+    # Have pntr_app_starter build the project
+    list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/.cmake")
+    find_package(pntr_app_starter)
 endif()

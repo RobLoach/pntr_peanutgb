@@ -43,6 +43,9 @@ extern "C" {
 
 struct gb_s;
 
+/**
+ * Loads a game from the given fileName.
+ */
 PNTR_PEANUTGB_API struct gb_s* pntr_load_peanutgb(const char* fileName);
 
 /**
@@ -156,6 +159,7 @@ void pntr_peanutgb_error(struct gb_s *gb, const enum gb_error_e gb_err, const ui
 	pntr_peanutgb_priv* priv = gb->direct.priv;
     priv->error = gb_err;
 
+    // TODO: Switch to pntr_log() or something
 	fprintf(stderr, "Error %d occurred: %s\n. Exiting.\n",
 			gb_err, gb_err_str[gb_err]);
 

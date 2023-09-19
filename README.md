@@ -16,6 +16,13 @@ pntr_image* pntr_peanutgb_image(struct gb_s* gb);
 void pntr_peanutgb_event(struct gb_s* gb, pntr_app_event* event);
 ```
 
+## Build
+
+```
+cmake -B build -DSDL=true -DRAYLIB=true -DLIBRETRO=true -DCLI=true
+cmake --build build
+```
+
 # License
 
 [MIT](LICENSE)

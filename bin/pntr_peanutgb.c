@@ -12,9 +12,12 @@
 #define PNTR_PEANUTGB_IMPLEMENTATION
 #include "../pntr_peanutgb.h"
 
+#include <stdio.h>
+
 bool Init(pntr_app* app) {
     // Load Peanut-GB
-    struct gb_s* gb = pntr_load_peanutgb_from_memory(pntr_app_file_data(app, NULL, false));
+    unsigned int size;
+    struct gb_s* gb = pntr_load_peanutgb_from_memory(pntr_app_file_data(app, &size, false));
     if (gb == NULL) {
         return false;
     }
