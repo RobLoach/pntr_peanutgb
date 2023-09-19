@@ -15,10 +15,16 @@
 #include <stdio.h>
 
 bool Init(pntr_app* app) {
+    void* fileData = pntr_app_load_arg_file(app, NULL);
+    if (fileData == NULL) {
+        printf("Requires a .gb file to load\n");
+        return false;
+    }
+
     // Load Peanut-GB
-    unsigned int size;
-    struct gb_s* gb = pntr_load_peanutgb_from_memory(pntr_app_file_data(app, &size, false));
+    struct gb_s* gb = pntr_load_peanutgb_from_memory(fileData);
     if (gb == NULL) {
+        pntr_unload_file(fileData);
         return false;
     }
 
