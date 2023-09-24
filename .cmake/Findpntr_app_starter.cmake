@@ -173,5 +173,5 @@ if (WEB AND EMSCRIPTEN)
     set_target_properties(${project_name_web} PROPERTIES OUTPUT_NAME "index")
     set_property(TARGET ${project_name_web} PROPERTY C_STANDARD 99)
 
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -s ASSERTIONS=1 -s WASM=1 --preload-file ${PROJECT_SOURCE_DIR}/resources@/resources --shell-file ${CMAKE_CURRENT_LIST_DIR}/shell.html")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -s ASSERTIONS=1 -s WASM=1 --shell-file ${CMAKE_CURRENT_LIST_DIR}/shell.html")
 endif()

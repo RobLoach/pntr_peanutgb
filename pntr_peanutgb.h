@@ -55,6 +55,10 @@ PNTR_PEANUTGB_API struct gb_s* pntr_load_peanutgb(const char* fileName);
  */
 PNTR_PEANUTGB_API struct gb_s* pntr_load_peanutgb_from_memory(const void* data);
 PNTR_PEANUTGB_API void pntr_unload_peanutgb(struct gb_s* gb);
+
+/**
+ * Run an update of peanutgb. This is expected to be called 60 times a second.
+ */
 PNTR_PEANUTGB_API bool pntr_update_peanutgb(struct gb_s* gb);
 PNTR_PEANUTGB_API int pntr_peanutgb_width();
 PNTR_PEANUTGB_API int pntr_peanutgb_height();
@@ -271,6 +275,7 @@ PNTR_PEANUTGB_API bool pntr_update_peanutgb(struct gb_s* gb) {
     // RTC Timer
     if (priv->tickCounter++ > 60) {
         gb_tick_rtc(gb);
+        priv->tickCounter = 0;
     }
 
     if (priv->error > 0) {
@@ -307,8 +312,10 @@ PNTR_PEANUTGB_API void pntr_peanutgb_event(struct gb_s* gb, pntr_app_event* even
         case PNTR_APP_EVENTTYPE_GAMEPAD_BUTTON_UP:
             switch(event->gamepadButton) {
                 case PNTR_APP_GAMEPAD_BUTTON_B:
+                case PNTR_APP_GAMEPAD_BUTTON_X:
                     gb->direct.joypad_bits.a = event->type != PNTR_APP_EVENTTYPE_GAMEPAD_BUTTON_DOWN;
                     break;
+                case PNTR_APP_GAMEPAD_BUTTON_Y:
                 case PNTR_APP_GAMEPAD_BUTTON_A:
                     gb->direct.joypad_bits.b = event->type != PNTR_APP_EVENTTYPE_GAMEPAD_BUTTON_DOWN;
                     break;
@@ -333,6 +340,10 @@ PNTR_PEANUTGB_API void pntr_peanutgb_event(struct gb_s* gb, pntr_app_event* even
                 case PNTR_APP_GAMEPAD_BUTTON_MENU:
                     gb_reset(gb);
                     break;
+                case PNTR_APP_GAMEPAD_BUTTON_UNKNOWN:
+                default:
+                    // Nothing.
+                    break;
             }
         break;
 
@@ -340,13 +351,16 @@ PNTR_PEANUTGB_API void pntr_peanutgb_event(struct gb_s* gb, pntr_app_event* even
         case PNTR_APP_EVENTTYPE_KEY_UP:
             switch(event->key) {
                 case PNTR_APP_KEY_X:
+                case PNTR_APP_KEY_A:
                     gb->direct.joypad_bits.a = event->type != PNTR_APP_EVENTTYPE_KEY_DOWN;
                     break;
                 case PNTR_APP_KEY_Z:
+                case PNTR_APP_KEY_S:
                     gb->direct.joypad_bits.b = event->type != PNTR_APP_EVENTTYPE_KEY_DOWN;
                     break;
                 case PNTR_APP_KEY_RIGHT_SHIFT:
                 case PNTR_APP_KEY_BACKSPACE:
+                case PNTR_APP_KEY_LEFT_SHIFT:
                     gb->direct.joypad_bits.select = event->type != PNTR_APP_EVENTTYPE_KEY_DOWN;
                     break;
                 case PNTR_APP_KEY_ENTER:
@@ -370,6 +384,7 @@ PNTR_PEANUTGB_API void pntr_peanutgb_event(struct gb_s* gb, pntr_app_event* even
                     }
                     break;
             }
+            printf("Key: %d\n", event->key);
         break;
     }
 }
