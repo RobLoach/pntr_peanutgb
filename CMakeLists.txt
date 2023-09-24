@@ -17,13 +17,14 @@ else()
     set(PNTR_PEANUTGB_IS_MAIN FALSE)
 endif()
 
-option(PNTR_PEANUTGB_BUILD "Example" ${PNTR_PEANUTGB_IS_MAIN})
+option(PNTR_PEANUTGB_BUILD "Build pntr_peanutgb" ${PNTR_PEANUTGB_IS_MAIN})
 
 if (PNTR_PEANUTGB_BUILD)
     option(SDL "Build SDL" TRUE)
     option(RAYLIB "Build raylib" TRUE)
     option(LIBRETRO "Build libretro" TRUE)
     option(CLI "Build CLI" TRUE)
+    option(WEB "Build Web" TRUE)
 
     set(SOURCES
         bin/pntr_peanutgb.c
