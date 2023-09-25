@@ -384,7 +384,6 @@ PNTR_PEANUTGB_API void pntr_peanutgb_event(struct gb_s* gb, pntr_app_event* even
                     }
                     break;
             }
-            printf("Key: %d\n", event->key);
         break;
     }
 }

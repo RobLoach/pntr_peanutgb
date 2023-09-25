@@ -1,5 +1,3 @@
-#include <stdio.h>
-
 #define PNTR_ENABLE_DEFAULT_FONT
 //#define PNTR_ENABLE_FILTER_SMOOTH
 //#define PNTR_ENABLE_TTF
@@ -12,11 +10,10 @@
 #define PNTR_PEANUTGB_IMPLEMENTATION
 #include "../pntr_peanutgb.h"
 
-#include <stdio.h>
-
 typedef struct AppData {
     struct gb_s* gb;
     pntr_font* font;
+    const char* message;
 } AppData;
 
 bool pntr_peanutgb_load_cart(pntr_app* app, void* fileData) {
@@ -38,9 +35,12 @@ bool pntr_peanutgb_load_cart(pntr_app* app, void* fileData) {
     appData->gb = pntr_load_peanutgb_from_memory(fileData);
     if (appData->gb == NULL) {
         pntr_app_log(PNTR_APP_LOG_ERROR, "Failed to load given cart");
+        appData->message = "Load cart failed";
         pntr_unload_file(fileData);
         return false;
     }
+
+    appData->message = "";
 
     return true;
 }
@@ -73,19 +73,36 @@ bool Update(pntr_app* app, pntr_image* screen) {
         return false;
     }
 
+    // Title screen
     if (appData->gb == NULL) {
         pntr_clear_background(screen, pntr_get_color(0x346856FF));
         pntr_draw_text(screen, appData->font, "pntr peanutgb", 30, 10, pntr_get_color(0xe0f8d0FF));
         pntr_draw_line(screen, 30, 20, 134, 20, pntr_get_color(0xe0f8d0FF));
         pntr_draw_text(screen, appData->font, "Drag and Drop", 30, 60, pntr_get_color(0xe0f8d0FF));
-        pntr_draw_text(screen, appData->font, "a cart on top", 30, 72, pntr_get_color(0xe0f8d0FF));
+        pntr_draw_text(screen, appData->font, "a .gb file here", 22, 72, pntr_get_color(0xe0f8d0FF));
+
+        int messageWidth = pntr_measure_text(appData->font, appData->message);
+        if (messageWidth > 0) {
+            pntr_draw_text(screen, appData->font, appData->message, screen->width / 2 - messageWidth / 2, screen->height - 8 - 5, pntr_get_color(0x88c070FF));
+        }
         return true;
     }
 
-    // Update the gb state
-    pntr_update_peanutgb(appData->gb);
+    // Update PeanutGB state
+    if (!pntr_update_peanutgb(appData->gb)) {
+        pntr_unload_peanutgb(appData->gb);
+        appData->gb = NULL;
+        appData->message = "Runtime error";
+    }
 
-    // Render on the screen
+    // Fast forward
+    if (pntr_app_key_down(app, PNTR_APP_KEY_SPACE)) {
+        for (int i = 0; i < 2; i++) {
+            pntr_update_peanutgb(appData->gb);
+        }
+    }
+
+    // Render the screen
     pntr_draw_peanutgb(screen, appData->gb, 0, 0);
 
     return true;
