@@ -383,8 +383,14 @@ PNTR_PEANUTGB_API void pntr_peanutgb_event(struct gb_s* gb, pntr_app_event* even
                         gb_reset(gb);
                     }
                     break;
+                default:
+                    // Ignore all other cases.
+                    break;
             }
         break;
+        default:
+            // Ignore all other events.
+            break;
     }
 }
 #endif

@@ -23,6 +23,15 @@ cmake -B build -DSDL=true -DRAYLIB=true -DLIBRETRO=true -DCLI=true
 cmake --build build
 ```
 
+## Web
+
+```
+emcmake cmake .. -DWEB=true -DRAYLIB=false
+emmake make
+```
+
+
+
 # License
 
 [MIT](LICENSE)

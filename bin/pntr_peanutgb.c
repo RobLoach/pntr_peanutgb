@@ -120,6 +120,8 @@ void Event(pntr_app* app, pntr_app_event* event) {
             pntr_peanutgb_load_cart(app, pntr_load_file(event->fileDropped, &size));
             return;
         }
+        default:
+            // No other event required.
         break;
     }
 
