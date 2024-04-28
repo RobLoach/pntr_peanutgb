@@ -164,8 +164,8 @@ void pntr_peanutgb_error(struct gb_s *gb, const enum gb_error_e gb_err, const ui
     priv->error = gb_err;
 
     // TODO: Switch to pntr_log() or something
-	fprintf(stderr, "Error %d occurred: %s\n. Exiting.\n",
-			gb_err, gb_err_str[gb_err]);
+	// fprintf(stderr, "Error %d occurred: %s\n. Exiting.\n",
+	// 		gb_err, gb_err_str[gb_err]);
 
 	/* Free memory and then exit. */
 	pntr_unload_memory(priv->cart_ram);
